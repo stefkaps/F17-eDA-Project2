@@ -56,18 +56,18 @@ Explanation of data... etc
 ```{r}
 # get only continuous variables
 sdf = dplyr::select(df, - status, - name)
-pairs(sdf)
+#pairs(sdf)
 s = sample(nrow(df), 98)
 s
 lda.fit=lda(status~mdvp_fhi_hz + mdvp_jitter,data=df, subset=s)
 lda.fit
-plot(lda.fit)
+#plot(lda.fit)
 train=df[-s,]
 lda.pred=predict(lda.fit,train)
 pred_df = data.frame(lda.pred)
 #lda plot
-ggplot(pred_df) + geom_histogram(mapping = aes(x=LD1)) + facet_wrap(~ class)
-ggplot(pred_df) + geom_boxplot(mapping = aes(x=class, y=LD1))
+#ggplot(pred_df) + geom_histogram(mapping = aes(x=LD1)) + facet_wrap(~ class)
+#ggplot(pred_df) + geom_boxplot(mapping = aes(x=class, y=LD1))
 table(lda.pred$class,train$status)
 mean(lda.pred$class==train$status)
 
@@ -76,18 +76,18 @@ mean(lda.pred$class==train$status)
 ```{r}
 # get only continuous variables
 sdf = dplyr::select(df, - status, - name)
-pairs(sdf)
+#pairs(sdf)
 s = sample(nrow(df), 98)
 s
 lda.fit=lda(status~mdvp_fo_hz + mdvp_jitter,data=df, subset=s)
 lda.fit
-plot(lda.fit)
+#plot(lda.fit)
 train=df[-s,]
 lda.pred=predict(lda.fit,train)
 pred_df = data.frame(lda.pred)
 #lda plot
-ggplot(pred_df) + geom_histogram(mapping = aes(x=LD1)) + facet_wrap(~ class)
-ggplot(pred_df) + geom_boxplot(mapping = aes(x=class, y=LD1))
+#ggplot(pred_df) + geom_histogram(mapping = aes(x=LD1)) + facet_wrap(~ class)
+#ggplot(pred_df) + geom_boxplot(mapping = aes(x=class, y=LD1))
 table(lda.pred$class,train$status)
 mean(lda.pred$class==train$status)
 

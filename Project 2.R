@@ -18,9 +18,15 @@ summary(df)
 attach(df)
 ?sample_n
 
+#df = df %>% dplyr::mutate()
+
 #training = dplyr::sample_n(df,98)
+#?dplyr::filter
 training = sample(nrow(df), 97)
+#train_df = df %>% dplyr::filter()
 testing = df[-training,]
+View(testing)
+
 View(training)
 
 ##
@@ -37,20 +43,27 @@ glm.probs=predict(glm.fit,type="response")
 ?probs
 glm.probs[1:5]
 glm.pred=ifelse(glm.probs == 1,"PD","Healthy")
-attach(df)
 table(glm.pred,status2)
+'''
+?glm
+glm.fit=glm(status~mdvp_fo_hz+mdvp_jitter,
+            data=df,family=binomial,  #error with binomial family? not sure why
+            subset=training)
+summary(glm.fit)
+'''
 
 ##
 ## LDA
 ##
-
-lda.fit=lda(status~mdvp_fo_hz+mdvp_jitter,data=training)
+?lda
+lda.fit=lda(status~mdvp_fo_hz+mdvp_jitter,data=df,subset=training)
 lda.fit
 plot(lda.fit)
 
 #testing <- dplyr::sample_n(df,98)
 lda.pred=predict(lda.fit, testing)
 lda_df = data.frame(lda.pred)
+View(lda.pred)
 ggplot(lda_df) + geom_histogram(mapping=aes(x=LD1))
 ggplot(lda_df) + geom_boxplot(mapping = aes(x=class,y=LD1))
 table(lda.pred$class,testing$status)
@@ -68,7 +81,7 @@ df1 %>% dplyr::group_by(class) %>% dplyr::summarise(min(posterior.false), max(po
 ## QDA
 ##
 
-qda.fit = qda(status~mdvp_fo_hz+mdvp_jitter,data=training)
+qda.fit = qda(status~mdvp_fo_hz+mdvp_jitter,data=df,subset=training)
 qda.fit
 testing <- dplyr::sample_n(df,98)
 qda.pred = predict(qda.fit, testing)
@@ -81,5 +94,8 @@ mean(qda.pred$class==testing$status)
 
 ??knn
 predictors=cbind(mdvp_fo_hz,mdvp_jitter)
-testing = sample(nrow(testing),97)
-knn.pred=class::knn(predictors[training, ],predictors[!training],status[training],k=1) # dimensions differ
+testing_knn = sample(nrow(testing), 97)
+knn.pred=class::knn(predictors[training, ],predictors[testing_knn,],status[training],k=1) # dimensions differ
+table(knn.pred,status[testing_knn])
+mean(knn.pred==status[testing_knn])
+

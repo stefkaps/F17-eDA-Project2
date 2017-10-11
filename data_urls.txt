@@ -1,3 +1,0 @@
-http://www.governing.com/gov-data/internet-usage-by-state.html
-
-https://www.ntia.doc.gov/data/digital-nation-data-explorer#sel=tvBoxUser&disp=map

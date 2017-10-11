@@ -1,0 +1,11 @@
+name: Notebook
+title: Notebook
+account: stefkaps
+server: shinyapps.io
+appId: 224231
+bundleId: 1022049
+url: https://stefkaps.shinyapps.io/Notebook/
+when: 1507751393.85128
+asMultiple: FALSE
+asStatic: FALSE
+additionalFiles: .Renviron

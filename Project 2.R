@@ -27,12 +27,18 @@ View(training)
 ## LR
 ##
 
-?glm
-glm.fit=glm(status~mdvp_fo_hz+mdvp_jitter,
+status2 = ifelse(status == "true", 1, 0)
+glm.fit=glm(status2~mdvp_fo_hz+mdvp_jitter,
             data=df,family=binomial,  #error with binomial family? not sure why
             subset=training)
 summary(glm.fit)
-glm.probs=
+glm.probs=predict(glm.fit,type="response") 
+?predict
+?probs
+glm.probs[1:5]
+glm.pred=ifelse(glm.probs == 1,"PD","Healthy")
+attach(df)
+table(glm.pred,status2)
 
 ##
 ## LDA

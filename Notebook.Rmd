@@ -1,6 +1,6 @@
 ---
 title: "Prediction of Parkinson's Disease"
-author: "Group 2: Kelly Jennings, Marcus Martinez, Peter Yi, Rachel Tarrant, Stefanos Kapetanakis"
+author: "Group 2: Kelly Jennings, Marcus Martinez, Changyong Yi, Rachel Tarrant, Stefanos Kapetanakis"
 output:
   html_notebook:
     code_folding: hide

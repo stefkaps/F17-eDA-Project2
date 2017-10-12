@@ -33,37 +33,34 @@ View(training)
 ## LR
 ##
 
-status2 = ifelse(status == "true", 1, 0)
+df2 = df %>% dplyr::mutate(status2 = ifelse(status == "true", 1, 0))
+#View(df2)
+training2 = sample(nrow(df2), 97)
+testing2 = df2[-training2,]
+View(testing2)
 glm.fit=glm(status2~mdvp_fo_hz+mdvp_jitter,
-            data=df,family=binomial,  #error with binomial family? not sure why
-            subset=training)
+            data=df2,family=binomial,
+            subset=training2)
 summary(glm.fit)
-glm.probs=predict(glm.fit,type="response") 
-?predict
-?probs
-glm.probs[1:5]
-glm.pred=ifelse(glm.probs == 1,"PD","Healthy")
-table(glm.pred,status2)
-'''
-?glm
-glm.fit=glm(status~mdvp_fo_hz+mdvp_jitter,
-            data=df,family=binomial,  #error with binomial family? not sure why
-            subset=training)
-summary(glm.fit)
-'''
+glm.probs=predict(glm.fit,newdata=testing2,type="response")
+#glm.probs[1:5]
+glm.pred=ifelse(glm.probs>0.5,"1","0")
+status2.testing = testing2$status2
+table(glm.pred,status2.testing)
+mean(glm.pred==status2.testing)
+
 
 ##
 ## LDA
 ##
-?lda
+
 lda.fit=lda(status~mdvp_fo_hz+mdvp_jitter,data=df,subset=training)
 lda.fit
 plot(lda.fit)
 
-#testing <- dplyr::sample_n(df,98)
 lda.pred=predict(lda.fit, testing)
 lda_df = data.frame(lda.pred)
-View(lda.pred)
+#View(lda.pred)
 ggplot(lda_df) + geom_histogram(mapping=aes(x=LD1))
 ggplot(lda_df) + geom_boxplot(mapping = aes(x=class,y=LD1))
 table(lda.pred$class,testing$status)
@@ -71,11 +68,13 @@ table(lda.pred$class==testing$status)
 mean(lda.pred$class==testing$status)
 table(lda.pred$class!=testing$status)
 
-df1 = dplyr::bind_cols(testing,lda_df)
-View(df1)
-df1 %>% dplyr::filter(status == class) %>% group_by(status) %>% summarise(n())
-df1 %>% dplyr::filter(status != class) %>% group_by(status) %>% summarise(n())
-df1 %>% dplyr::group_by(class) %>% dplyr::summarise(min(posterior.false), max(posterior.true), n())
+
+# df1 = dplyr::bind_cols(testing,lda_df)
+# View(df1)
+# df1 %>% dplyr::filter(status == class) %>% group_by(status) %>% summarise(n())
+# df1 %>% dplyr::filter(status != class) %>% group_by(status) %>% summarise(n())
+# df1 %>% dplyr::group_by(class) %>% dplyr::summarise(min(posterior.false), max(posterior.true), n())
+
 
 ##
 ## QDA
@@ -86,7 +85,10 @@ qda.fit
 testing <- dplyr::sample_n(df,98)
 qda.pred = predict(qda.fit, testing)
 table(qda.pred$class,testing$status)
+table(qda.pred$class==testing$status)
+table(qda.pred$class!=testing$status)
 mean(qda.pred$class==testing$status)
+
 
 ##
 ## KNN
@@ -99,3 +101,10 @@ knn.pred=class::knn(predictors[training, ],predictors[testing_knn,],status[train
 table(knn.pred,status[testing_knn])
 mean(knn.pred==status[testing_knn])
 
+
+
+# Comparison of the mean correct predictions
+mean(glm.pred==status2.testing)
+mean(lda.pred$class==testing$status)
+mean(qda.pred$class==testing$status)
+mean(knn.pred==status[testing_knn])

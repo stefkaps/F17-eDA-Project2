@@ -206,14 +206,49 @@ table(lda4.pred$class!=testing$status)
 ## QDA  ##
 ##      ##
 
+#
+# QDA1 - analyzing average hertz and jitter
+#
 qda.fit = qda(status~mdvp_fo_hz+mdvp_jitter,data=df,subset=training)
 qda.fit
-testing <- dplyr::sample_n(df,98)
 qda.pred = predict(qda.fit, testing)
 table(qda.pred$class,testing$status)
 table(qda.pred$class==testing$status)
 table(qda.pred$class!=testing$status)
 mean(qda.pred$class==testing$status)
+
+#
+# QDA2 - analyzing average hertz and shimmer
+#
+qda.fit2 = qda(status~mdvp_fo_hz+mdvp_shimmer,data=df,subset=training)
+qda.fit2
+qda.pred2 = predict(qda.fit2, testing)
+table(qda.pred2$class,testing$status)
+table(qda.pred2$class==testing$status)
+table(qda.pred2$class!=testing$status)
+mean(qda.pred2$class==testing$status)
+
+#
+# QDA3 - analyzing 5 uncorrelated predictors and jitter
+#
+qda.fit3 = qda(status~mdvp_fo_hz+mdvp_jitter+rpde+d2+dfa+spread1,data=df,subset=training)
+qda.fit3
+qda.pred3 = predict(qda.fit3, testing)
+table(qda.pred3$class,testing$status)
+table(qda.pred3$class==testing$status)
+table(qda.pred3$class!=testing$status)
+mean(qda.pred3$class==testing$status)
+
+#
+# QDA4 - analyzing 5 uncorrelated predictors and shimmer
+#
+qda.fit4 = qda(status~mdvp_fo_hz+mdvp_shimmer+rpde+d2+dfa+spread1,data=df,subset=training)
+qda.fit4
+qda.pred4 = predict(qda.fit4, testing)
+table(qda.pred4$class,testing$status)
+table(qda.pred4$class==testing$status)
+table(qda.pred4$class!=testing$status)
+mean(qda.pred4$class==testing$status)
 
 
 ##      ##

@@ -20,6 +20,7 @@ require(ggplot2)
 require(ISLR)
 require(data.world)
 knitr::opts_chunk$set(echo = TRUE)
+
 ```
   
 ## **R Session Info**  

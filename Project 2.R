@@ -166,7 +166,7 @@ lda2_df = data.frame(lda2.pred)
 ggplot(lda2_df) + geom_histogram(mapping=aes(x=LD1))
 ggplot(lda2_df) + geom_boxplot(mapping = aes(x=class,y=LD1))
 table(lda2.pred$class,test$status)
-table(lda2.pred$class==test$status) #no real falses because everyone with jitters has PD ->jitters is "perfect" predictor of PD
+table(lda2.pred$class==test$status)
 table(lda2.pred$class!=test$status)
 mean(lda2.pred$class==test$status)
 

@@ -18,12 +18,32 @@ summary(df)
 attach(df)
 ?sample_n
 
-#df = df %>% dplyr::mutate()
+##
+## Correlations between predictors
+##
 
-#training = dplyr::sample_n(df,98)
-#?dplyr::filter
+fund_freq_df = dplyr::select(df, mdvp_fo_hz, mdvp_flo_hz, mdvp_fhi_hz)
+freq_var_df = dplyr::select(df, mdvp_jitter, mdvp_jitter_abs,mdvp_rap,mdvp_ppq,jitter_ddp)
+amp_var_df = dplyr::select(df, mdvp_shimmer, mdvp_shimmer_db, shimmer_apq3, shimmer_apq5, mdvp_apq, shimmer_dda)
+
+other_preds_df = dplyr::select(df, nhr, hnr, rpde, d2, dfa, spread1, spread2, ppe)
+# ppe and spread1 correlated, spread1 and spread2 less correlated
+try_preds_df = dplyr::select(df, mdvp_fo_hz, mdvp_jitter, mdvp_shimmer, nhr, rpde, d2, dfa, spread1)
+#mdvp_jitter and mdvp_shimmer are correlated, jitter and nhr
+uncor_preds1_df = dplyr::select(df, mdvp_fo_hz, mdvp_jitter, rpde, d2, dfa, spread1)
+uncor_preds2_df = dplyr::select(df, mdvp_fo_hz, mdvp_shimmer, rpde, d2, dfa, spread1)
+
+pairs(fund_freq_df) # correlated
+pairs(freq_var_df) # these are highly correlated
+pairs(amp_var_df) # also highly correlated
+pairs(other_preds_df) # mostly not correlated except for spread1 and ppe, spread2 and spread1
+pairs (try_preds_df) # jitter and shimmer correlated, jitter and nhr correlated
+pairs(uncor_preds1_df) # mostly uncorrelated
+pairs(uncor_preds2_df) # mostly uncorrelated
+
+
+
 training = sample(nrow(df), 97)
-#train_df = df %>% dplyr::filter()
 testing = df[-training,]
 View(testing)
 

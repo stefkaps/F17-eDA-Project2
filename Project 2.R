@@ -14,192 +14,198 @@ df <- data.world::query(
   data.world::qry_sql("SELECT * FROM parkinsons"),
   dataset = project
 )
+
 summary(df)
 attach(df)
-?sample_n
+# add column with binary version of status
+df = df %>% dplyr::mutate(status2 = ifelse(status == "true", 1, 0))
 
-df1 <- data.world::query(
-  data.world::qry_sql("SELECT mdvp_shimmer, mdvp_shimmer_db, shimmer_apq3, shimmer_apq5, mdvp_apq, shimmer_dda FROM parkinsons"),
-  dataset = project
-)
+##                                  ##
+## Create training and testing data ##
+##                                  ##
 
-pairs(df1)
+train = sample(nrow(df), 97)
+#View(train)
+test = df[-train,]
+#View(test)
 
-# fund_freq_df = dplyr::select(df, mdvp_fo_hz, mdvp_flo_hz, mdvp_fhi_hz)
-# freq_var_df = dplyr::select(df, mdvp_jitter, mdvp_jitter_abs,mdvp_rap,mdvp_ppq,jitter_ddp)
-# amp_var_df = dplyr::select(df, mdvp_shimmer, mdvp_shimmer_db, shimmer_apq3, shimmer_apq5, mdvp_apq, shimmer_dda)
-# 
-# other_preds_df = dplyr::select(df, nhr, hnr, rpde, d2, dfa, spread1, spread2, ppe)
-# # ppe and spread1 correlated, spread1 and spread2 less correlated
-# try_preds_df = dplyr::select(df, mdvp_fo_hz, mdvp_jitter, mdvp_shimmer, nhr, rpde, d2, dfa, spread1)
-# #mdvp_jitter and mdvp_shimmer are correlated, jitter and nhr
-# uncor_preds1_df = dplyr::select(df, mdvp_fo_hz, mdvp_jitter, rpde, d2, dfa, spread1)
-# uncor_preds2_df = dplyr::select(df, mdvp_fo_hz, mdvp_shimmer, rpde, d2, dfa, spread1)
-# 
-# pairs(fund_freq_df) # correlated
-# pairs(freq_var_df) # these are highly correlated
-# pairs(amp_var_df) # also highly correlated
-# pairs(other_preds_df) # mostly not correlated except for spread1 and ppe, spread2 and spread1
-# pairs (try_preds_df) # jitter and shimmer correlated, jitter and nhr correlated
-# pairs(uncor_preds1_df) # mostly uncorrelated
-# pairs(uncor_preds2_df) # mostly uncorrelated
+# KNN requires the testing and training sets to be the same length
+# since there are an odd number of rows, choose 97 from the 98 testing set
+test_knn = sample(nrow(test), 97)
 
 
-#df = df %>% dplyr::mutate()
+##                    ##
+## Correlation charts ##
+##                    ##
 
-#training = dplyr::sample_n(df,98)
-#?dplyr::filter
-training = sample(nrow(df), 97)
-#train_df = df %>% dplyr::filter()
-testing = df[-training,]
-View(testing)
+# predictors about vocal fundamental frequency
+fund_freq_df = dplyr::select(df, mdvp_fo_hz, mdvp_flo_hz, mdvp_fhi_hz)
+# predictors about variation in vocal fundamental frequency
+freq_var_df = dplyr::select(df, mdvp_jitter, mdvp_jitter_abs,mdvp_rap,mdvp_ppq,jitter_ddp)
+# predictors about variation in amplitude 
+amp_var_df = dplyr::select(df, mdvp_shimmer, mdvp_shimmer_db, shimmer_apq3, shimmer_apq5, mdvp_apq, shimmer_dda)
+# predictors for other vocal aspects
+other_preds_df = dplyr::select(df, nhr, hnr, rpde, d2, dfa, spread1, spread2, ppe)
 
-View(training)
+# fundamental frequency variables are all correlated
+pairs(fund_freq_df)
+# variation in fundamental frequency variables (jitters) are all correlated
+pairs(freq_var_df)
+# variation in amplitude variables (shimmers) are all correlated
+pairs(amp_var_df)
+# other variables mostly not correlated except for spread1&ppe and spread1&spread2
+pairs(other_preds_df)
+
+# predictors with one fund freq variable, one jitter, one shimmer, and the uncorrelated other variables
+try_preds_df = dplyr::select(df, mdvp_fo_hz, mdvp_jitter, mdvp_shimmer, nhr, rpde, d2, dfa, spread1)
+# mdvp_jitter&mdvp_shimmer and jitter&nhr are correlated
+pairs (try_preds_df)
+
+# remove nhr, and make two sets of uncorrelated predictors - one with jitter, one with shimmer
+uncor_preds1_df = dplyr::select(df, mdvp_fo_hz, mdvp_jitter, rpde, d2, dfa, spread1)
+pairs(uncor_preds1_df)
+uncor_preds2_df = dplyr::select(df, mdvp_fo_hz, mdvp_shimmer, rpde, d2, dfa, spread1)
+pairs(uncor_preds2_df)
+
 
 ##    ##
 ## LR ##
 ##    ##
 
-#creating the training/testing set
-df2 = df %>% dplyr::mutate(status2 = ifelse(status == "true", 1, 0))
-#View(df2)
-training2 = sample(nrow(df2), 97)
-testing2 = df2[-training2,]
-
 #
-#glm1 - analyzing average hertz and jitter
+# GLM1 - analyzing average hertz and jitter
 #
-glm1.fit=glm(status2~mdvp_fo_hz+mdvp_jitter,
-            data=df2,family=binomial,
-            subset=training2)
+glm1.fit=glm(status2 ~ mdvp_fo_hz + mdvp_jitter,
+             data=df, family=binomial,
+             subset=train)
 summary(glm1.fit)
-glm1.probs=predict(glm.fit,newdata=testing2,type="response")
+glm1.probs=predict(glm1.fit,newdata=test,type="response")
 #glm1.probs[1:5]
 glm1.pred=ifelse(glm1.probs>0.5,"1","0")
-status2.testing = testing2$status2
-table(glm1.pred,status2.testing)
-mean(glm1.pred==status2.testing)
+status2.test = test$status2
+table(glm1.pred,status2.test)
+mean(glm1.pred==status2.test)
 
 #
-#glm2 - analyzing average hertz and shimmer
+# GLM2 - analyzing average hertz and shimmer
 #
-glm2.fit=glm(status2~mdvp_fo_hz+mdvp_shimmer,
-            data=df2,family=binomial,
-            subset=training2)
+glm2.fit=glm(status2 ~ mdvp_fo_hz + mdvp_shimmer,
+             data=df, family=binomial,
+             subset=train)
 summary(glm2.fit)
-glm2.probs=predict(glm.fit,newdata=testing2,type="response")
+glm2.probs=predict(glm2.fit,newdata=test,type="response")
 #glm2.probs[1:5]
-glm2.pred=ifelse(glm.probs>0.5,"1","0")
-status2.testing = testing2$status2
-table(glm2.pred,status2.testing)
-mean(glm2.pred==status2.testing)
+glm2.pred=ifelse(glm2.probs>0.5,"1","0")
+status2.test = test$status2
+table(glm2.pred,status2.test)
+mean(glm2.pred==status2.test)
 
 #
-#glm3 - analyzing five uncorrelated predictors with jitter
+# GLM3 - analyzing five uncorrelated predictors with jitter
 #
-glm3.fit=glm(status2~mdvp_fo_hz + mdvp_jitter + rpde + d2 + dfa + spread1,
-            data=df2,family=binomial,
-            subset=training2)
+glm3.fit=glm(status2 ~ mdvp_fo_hz + mdvp_jitter + rpde + d2 + dfa + spread1,
+             data=df, family=binomial,
+             subset=train)
 summary(glm3.fit)
-glm3.probs=predict(glm3.fit,newdata=testing2,type="response")
+glm3.probs=predict(glm3.fit,newdata=test,type="response")
 #glm.probs[1:5]
 glm3.pred=ifelse(glm3.probs>0.5,"1","0")
-status2.testing = testing2$status2
-table(glm3.pred,status2.testing)
-mean(glm3.pred==status2.testing)
+status2.test = test$status2
+table(glm3.pred,status2.test)
+mean(glm3.pred==status2.test)
 
 #
-#glm4 - analyzing five uncorrelated predictors with shimmer
+# GLM4 - analyzing five uncorrelated predictors with shimmer
 #
-glm4.fit=glm(status2~mdvp_fo_hz + mdvp_shimmer + rpde + d2 + dfa + spread1,
-            data=df2,family=binomial,
-            subset=training2)
+glm4.fit=glm(status2 ~ mdvp_fo_hz + mdvp_shimmer + rpde + d2 + dfa + spread1,
+             data=df, family=binomial,
+             subset=train)
 summary(glm4.fit)
-glm4.probs=predict(glm4.fit,newdata=testing2,type="response")
+glm4.probs=predict(glm4.fit,newdata=test,type="response")
 #glm4.probs[1:5]
-glm4.pred=ifelse(glm.probs>0.5,"1","0")
-status2.testing = testing2$status2
-table(glm4.pred,status2.testing)
-mean(glm4.pred==status2.testing)
+glm4.pred=ifelse(glm4.probs>0.5,"1","0")
+status2.test = test$status2
+table(glm4.pred,status2.test)
+mean(glm4.pred==status2.test)
+
+# mean of best model
+glm_mean = mean(glm1.pred==status2.test)
+
 
 ##      ##
 ## LDA  ##
 ##      ##
 
 #
-#LDA1 - analyzing average hertz and jitter
+# LDA1 - analyzing average hertz and jitter
 #
-lda1.fit=lda(status~mdvp_fo_hz+mdvp_jitter,data=df,subset=training)
+lda1.fit=lda(status ~ mdvp_fo_hz + mdvp_jitter,
+             data=df, subset=train)
 lda1.fit
 plot(lda1.fit)
 
-lda1.pred=predict(lda1.fit, testing)
+lda1.pred=predict(lda1.fit, test)
 lda1_df = data.frame(lda1.pred)
-#View(lda.pred)
 ggplot(lda1_df) + geom_histogram(mapping=aes(x=LD1))
 ggplot(lda1_df) + geom_boxplot(mapping = aes(x=class,y=LD1))
-table(lda1.pred$class,testing$status)
-table(lda1.pred$class==testing$status)
-mean(lda1.pred$class==testing$status)
-table(lda1.pred$class!=testing$status)
+table(lda1.pred$class,test$status)
+table(lda1.pred$class==test$status)
+table(lda1.pred$class!=test$status)
+mean(lda1.pred$class==test$status)
 
 #
 # LDA2 - analyzing average hertz and shimmer
 #
-lda2.fit=lda(status~mdvp_fo_hz+mdvp_shimmer,data=df,subset=training)
+lda2.fit=lda(status ~ mdvp_fo_hz + mdvp_shimmer,
+             data=df, subset=train)
 lda2.fit
 plot(lda2.fit)
 
-lda2.pred=predict(lda2.fit, testing)
+lda2.pred=predict(lda2.fit, test)
 lda2_df = data.frame(lda2.pred)
-#View(lda.pred)
 ggplot(lda2_df) + geom_histogram(mapping=aes(x=LD1))
 ggplot(lda2_df) + geom_boxplot(mapping = aes(x=class,y=LD1))
-table(lda2.pred$class,testing$status)
-table(lda2.pred$class==testing$status) #no real falses because everyone with jitters has PD -> jitters is "perfect" predictor of PD
-mean(lda2.pred$class==testing$status)
-table(lda2.pred$class!=testing$status)
+table(lda2.pred$class,test$status)
+table(lda2.pred$class==test$status) #no real falses because everyone with jitters has PD ->jitters is "perfect" predictor of PD
+table(lda2.pred$class!=test$status)
+mean(lda2.pred$class==test$status)
 
 #
 # LDA3 - analyzing five uncorrelated predictors with jitter
 #
-lda3.fit=lda(status~mdvp_fo_hz + mdvp_jitter + rpde + d2 + dfa + spread1,data=df,subset=training)
+lda3.fit=lda(status ~ mdvp_fo_hz + mdvp_jitter + rpde + d2 + dfa + spread1,
+             data=df, subset=train)
 lda3.fit
 plot(lda3.fit)
 
-lda3.pred=predict(lda3.fit, testing)
+lda3.pred=predict(lda3.fit, test)
 lda3_df = data.frame(lda3.pred)
-#View(lda.pred)
 ggplot(lda3_df) + geom_histogram(mapping=aes(x=LD1))
 ggplot(lda3_df) + geom_boxplot(mapping = aes(x=class,y=LD1))
-table(lda3.pred$class,testing$status)
-table(lda3.pred$class==testing$status)
-mean(lda3.pred$class==testing$status)
-table(lda3.pred$class!=testing$status)
+table(lda3.pred$class,test$status)
+table(lda3.pred$class==test$status)
+table(lda3.pred$class!=test$status)
+mean(lda3.pred$class==test$status)
 
 #
 # LDA4 - analyzing five uncorrelated predictors with shimmer
 #
-lda4.fit=lda(status~mdvp_fo_hz + mdvp_shimmer + rpde + d2 + dfa + spread1,data=df,subset=training)
+lda4.fit=lda(status ~ mdvp_fo_hz + mdvp_shimmer + rpde + d2 + dfa + spread1,
+             data=df, subset=train)
 lda4.fit
 plot(lda4.fit)
 
-lda4.pred=predict(lda4.fit, testing)
+lda4.pred=predict(lda4.fit, test)
 lda4_df = data.frame(lda4.pred)
-#View(lda.pred)
 ggplot(lda4_df) + geom_histogram(mapping=aes(x=LD1))
 ggplot(lda4_df) + geom_boxplot(mapping = aes(x=class,y=LD1))
-table(lda4.pred$class,testing$status)
-table(lda4.pred$class==testing$status)
-mean(lda4.pred$class==testing$status)
-table(lda4.pred$class!=testing$status)
+table(lda4.pred$class,test$status)
+table(lda4.pred$class==test$status)
+table(lda4.pred$class!=test$status)
+mean(lda4.pred$class==test$status)
 
-
-# df1 = dplyr::bind_cols(testing,lda_df)
-# View(df1)
-# df1 %>% dplyr::filter(status == class) %>% group_by(status) %>% summarise(n())
-# df1 %>% dplyr::filter(status != class) %>% group_by(status) %>% summarise(n())
-# df1 %>% dplyr::group_by(class) %>% dplyr::summarise(min(posterior.false), max(posterior.true), n())
+# mean of best model
+lda_mean = mean(lda1.pred$class==test$status)
 
 
 ##      ##
@@ -209,46 +215,53 @@ table(lda4.pred$class!=testing$status)
 #
 # QDA1 - analyzing average hertz and jitter
 #
-qda.fit = qda(status~mdvp_fo_hz+mdvp_jitter,data=df,subset=training)
-qda.fit
-qda.pred = predict(qda.fit, testing)
-table(qda.pred$class,testing$status)
-table(qda.pred$class==testing$status)
-table(qda.pred$class!=testing$status)
-mean(qda.pred$class==testing$status)
+qda1.fit = qda(status ~ mdvp_fo_hz + mdvp_jitter,
+              data=df, subset=train)
+qda1.fit
+qda1.pred = predict(qda1.fit, test)
+table(qda1.pred$class,test$status)
+table(qda1.pred$class==test$status)
+table(qda1.pred$class!=test$status)
+mean(qda1.pred$class==test$status)
 
 #
 # QDA2 - analyzing average hertz and shimmer
 #
-qda.fit2 = qda(status~mdvp_fo_hz+mdvp_shimmer,data=df,subset=training)
+qda.fit2 = qda(status ~ mdvp_fo_hz + mdvp_shimmer,
+               data=df, subset=train)
 qda.fit2
-qda.pred2 = predict(qda.fit2, testing)
-table(qda.pred2$class,testing$status)
-table(qda.pred2$class==testing$status)
-table(qda.pred2$class!=testing$status)
-mean(qda.pred2$class==testing$status)
+qda.pred2 = predict(qda.fit2, test)
+table(qda.pred2$class,test$status)
+table(qda.pred2$class==test$status)
+table(qda.pred2$class!=test$status)
+mean(qda.pred2$class==test$status)
 
 #
-# QDA3 - analyzing 5 uncorrelated predictors and jitter
+# QDA3 - analyzing 5 uncorrelated predictors with jitter
 #
-qda.fit3 = qda(status~mdvp_fo_hz+mdvp_jitter+rpde+d2+dfa+spread1,data=df,subset=training)
+qda.fit3 = qda(status ~ mdvp_fo_hz + mdvp_jitter + rpde + d2 + dfa + spread1,
+               data=df, subset=train)
 qda.fit3
-qda.pred3 = predict(qda.fit3, testing)
-table(qda.pred3$class,testing$status)
-table(qda.pred3$class==testing$status)
-table(qda.pred3$class!=testing$status)
-mean(qda.pred3$class==testing$status)
+qda.pred3 = predict(qda.fit3, test)
+table(qda.pred3$class,test$status)
+table(qda.pred3$class==test$status)
+table(qda.pred3$class!=test$status)
+mean(qda.pred3$class==test$status)
 
 #
-# QDA4 - analyzing 5 uncorrelated predictors and shimmer
+# QDA4 - analyzing 5 uncorrelated predictors with shimmer
 #
-qda.fit4 = qda(status~mdvp_fo_hz+mdvp_shimmer+rpde+d2+dfa+spread1,data=df,subset=training)
+qda.fit4 = qda(status ~ mdvp_fo_hz + mdvp_shimmer + rpde + d2 + dfa + spread1,
+               data=df,subset=train)
 qda.fit4
-qda.pred4 = predict(qda.fit4, testing)
-table(qda.pred4$class,testing$status)
-table(qda.pred4$class==testing$status)
-table(qda.pred4$class!=testing$status)
-mean(qda.pred4$class==testing$status)
+qda.pred4 = predict(qda.fit4, test)
+table(qda.pred4$class,test$status)
+table(qda.pred4$class==test$status)
+table(qda.pred4$class!=test$status)
+mean(qda.pred4$class==test$status)
+
+# mean of best model
+qda_mean = mean(qda1.pred$class==test$status)
 
 
 ##      ##
@@ -256,44 +269,46 @@ mean(qda.pred4$class==testing$status)
 ##      ##
 
 #
-#analyzing average hertz and jitter
+# KNN1 - analyzing average hertz and jitter
 #
-predictors=cbind(mdvp_fo_hz,mdvp_jitter)
-testing_knn = sample(nrow(testing), 97)
-knn.pred=class::knn(predictors[training, ],predictors[testing_knn,],status[training],k=1) # dimensions differ
-table(knn.pred,status[testing_knn])
-mean(knn.pred==status[testing_knn])
+predictors1=cbind(mdvp_fo_hz, mdvp_jitter)
+knn1.pred=class::knn(predictors1[train, ],predictors1[test_knn,],status[train],k=1)
+table(knn1.pred,status[test_knn])
+mean(knn1.pred==status[test_knn])
 
 #
-#analyzing average hertz and shimmer
+# KNN2 - analyzing average hertz and shimmer
 #
-predictors=cbind(mdvp_fo_hz,mdvp_shimmer)
-testing_knn = sample(nrow(testing), 97)
-knn.pred=class::knn(predictors[training, ],predictors[testing_knn,],status[training],k=1) # dimensions differ
-table(knn.pred,status[testing_knn])
-mean(knn.pred==status[testing_knn])
+predictors2=cbind(mdvp_fo_hz, mdvp_shimmer)
+knn2.pred=class::knn(predictors2[train, ],predictors2[test_knn,],status[train],k=1)
+table(knn2.pred,status[test_knn])
+mean(knn2.pred==status[test_knn])
 
 #
-#analyzing five uncorrelated predictors with jitter
+# KNN3- analyzing five uncorrelated predictors with jitter
 #
-predictors=cbind(mdvp_fo_hz,mdvp_jitter,rpde,d2,dfa,spread1)
-testing_knn = sample(nrow(testing), 97)
-knn.pred=class::knn(predictors[training, ],predictors[testing_knn,],status[training],k=1) # dimensions differ
-table(knn.pred,status[testing_knn])
-mean(knn.pred==status[testing_knn])
+predictors3=cbind(mdvp_fo_hz, mdvp_jitter, rpde, d2, dfa, spread1)
+knn3.pred=class::knn(predictors3[train, ],predictors3[test_knn,],status[train],k=1)
+table(knn3.pred,status[test_knn])
+mean(knn3.pred==status[test_knn])
 
 #
-#analyzing five uncorrelated predictors with shimmer
+# KNN4 - analyzing five uncorrelated predictors with shimmer
 #
-predictors=cbind(mdvp_fo_hz,mdvp_shimmer,rpde,d2,dfa,spread1)
-testing_knn = sample(nrow(testing), 97)
-knn.pred=class::knn(predictors[training, ],predictors[testing_knn,],status[training],k=1) # dimensions differ
-table(knn.pred,status[testing_knn])
-mean(knn.pred==status[testing_knn])
+predictors4=cbind(mdvp_fo_hz, mdvp_shimmer, rpde, d2, dfa, spread1)
+knn4.pred=class::knn(predictors4[train, ],predictors4[test_knn,],status[train],k=1)
+table(knn4.pred,status[test_knn])
+mean(knn4.pred==status[test_knn])
+
+# mean of best model
+knn_mean = mean(knn1.pred==status[test_knn])
 
 
-# Comparison of the mean correct predictions
-mean(glm.pred==status2.testing)
-mean(lda.pred$class==testing$status)
-mean(qda.pred$class==testing$status)
-mean(knn.pred==status[testing_knn])
+##                                            ##
+## Comparison of the mean correct predictions ##
+##                                            ##
+
+glm_mean
+lda_mean
+qda_mean
+knn_mean

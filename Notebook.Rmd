@@ -263,7 +263,7 @@ mean(knn3.pred==status[test_knn])
 
 ## Research Progression
 
-Using the pairs function we found predictors that aren't confounding and chose these to analyze. Initially we decided to choose average hertz and jitter as our predictors, because they yielded the best results among the two predictor combinations. Many of the variables were heavily correlated. For example, the fundamental frequency variables, the variation fundamental frequency variables, and the variation amplitude variables were all examples of this problem. Excluding these gave us the variables with which we worked. We did further exploration and attempted to exclude other correlated variables.
+Using the pairs function we found predictors that aren't confounding and chose these to analyze. Initially we decided to choose average hertz and jitter as our predictors, because they yielded the best results among the two predictor combinations. Many of the variables were heavily correlated. For example, the fundamental frequency variables, the variation fundamental frequency variables, and the variation amplitude variables were all examples of this problem. Choosing one from each category gave us the variables with which we worked. We did further exploration, chose one variable each from jitter and shimmer, and then chose to include jitter instead of shimmer.
 
 ```{r}
 sdf = dplyr::select(df, - status, - name, - mdvp_jitter_abs, -mdvp_ppq, - mdvp_rap, - mdvp_shimmer_db, - shimmer_apq3, - shimmer_apq5, - shimmer_dda, - status2)

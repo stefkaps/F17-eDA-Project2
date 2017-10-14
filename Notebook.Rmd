@@ -48,9 +48,9 @@ In the setup, we randomly split the dataset into two halves, one used for traini
 ```{r}
 attach(df)
 df = df %>% dplyr::mutate(status2 = ifelse(status == "true", 1, 0))
+set.seed(1)
 train = sample(nrow(df), 97)
 test = df[-train,]
-set.seed(1)
 ```
 
 
@@ -92,7 +92,6 @@ glm1.fit=glm(status2 ~ mdvp_fo_hz + mdvp_jitter,
              subset=train)
 summary(glm1.fit)
 glm1.probs=predict(glm1.fit,newdata=test,type="response")
-#glm1.probs[1:5]
 glm1.pred=ifelse(glm1.probs>0.5,"1","0")
 status2.test = test$status2
 table(glm1.pred,status2.test)
@@ -108,7 +107,6 @@ glm3.fit=glm(status2 ~ mdvp_fo_hz + mdvp_jitter + rpde + d2 + dfa + spread1,
              subset=train)
 summary(glm3.fit)
 glm3.probs=predict(glm3.fit,newdata=test,type="response")
-#glm.probs[1:5]
 glm3.pred=ifelse(glm3.probs>0.5,"1","0")
 status2.test = test$status2
 table(glm3.pred,status2.test)
@@ -265,12 +263,18 @@ mean(knn3.pred==status[test_knn])
 
 ## Research Progression
 
-Using the pairs function we found predictors that aren't confounding and chose these to analyze. Initially we decided to choose average hertz and jitter, as our predictors, because they yielded the best results among the two predictor combinations. The six predictors models were better predictors overall. The means were consistantly better than the two predictor models throughout our data exploration. 
+Using the pairs function we found predictors that aren't confounding and chose these to analyze. Initially we decided to choose average hertz and jitter as our predictors, because they yielded the best results among the two predictor combinations. Many of the variables were heavily correlated. For example, the fundamental frequency variables, the variation fundamental frequency variables, and the variation amplitude variables were all examples of this problem. Excluding these gave us the variables with which we worked. We did further exploration and attempted to exclude other correlated variables.
 
+```{r}
+sdf = dplyr::select(df, - status, - name, - mdvp_jitter_abs, -mdvp_ppq, - mdvp_rap, - mdvp_shimmer_db, - shimmer_apq3, - shimmer_apq5, - shimmer_dda, - status2)
+renderPlot(pairs(sdf))
+```
+
+This plot is a good example of where we started in terms of narrowing down our predictors. 
 
 ##Insights
 
-When analyzing each model, the greater mean for each analysis type was not consistant (i.e. neither the two nor six predictor model proved to be better). However, despite these inconsistancies, the differences between each model within each analysis were small. These inconsistancies were a consequence of random sampling, as well as our data being relatively small. Our worst models still yielded relatively good results usually above .75 for both two and six predictor models.
+When analyzing each model, the greater mean for each analysis type was not consistant (i.e. neither the two nor six predictor model proved to be better). However, despite these inconsistancies, the differences between each model within each analysis were small, and the six predictor models tended to have higher means than the corresponding two predictor models within the same analysis type. These inconsistancies were a consequence of random sampling, as well as our data being relatively small. Our worst models still yielded relatively good results usually above .75 for both two and six predictor models. For the purpose of consistancy in this data report, we included a seed.
 
 Even though these inconsistancies were present, the K-Nearest Neighbors (KNN) analysis type yields the overall best results. In fact, the six predictor model within the KNN analysis typically had the highest mean. The usual mean percentage was around .91 to .96.
 
